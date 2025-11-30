@@ -3,23 +3,23 @@ const routes = require('./routes/index');
 const sequelize = require('./config/database');
 const cors = require('cors');
 
+// --- Importações do Swagger ---
+const swaggerUi = require('swagger-ui-express');
+const swaggerDocument = require('./swagger.json');
+
 const app = express();
 
-// Middlewares
-app.use(cors()); // Permite requisições externas
-app.use(express.json()); // Habilita parse de JSON no body das requisições
+app.use(cors());
+app.use(express.json());
 
-// Rotas da Aplicação
+// --- Rota da Documentação ---
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 app.use(routes);
 
-// Sincronização com o Banco de Dados (ORM)
-// Verifica se as tabelas existem e as cria se necessário.
+// Sincroniza o banco ao iniciar
 sequelize.sync({ force: false })
-    .then(() => {
-        console.log('✅ Conexão com PostgreSQL estabelecida e modelos sincronizados.');
-    })
-    .catch(err => {
-        console.error('❌ Falha fatal ao conectar no banco de dados:', err);
-    });
+    .then(() => console.log('✅ Banco Sincronizado!'))
+    .catch(err => console.error('❌ Erro no banco:', err));
 
 module.exports = app;

@@ -85,7 +85,7 @@ async function executarTesteCompleto() {
     res = await fetch(`${BASE_URL}/${PEDIDO_ID}`);
     if (res.status === 404) {
         console.log("\n====================================================");
-        console.log("🏆 TESTE GABARITADO! TODAS AS ROTAS FUNCIONAM.");
+        console.log("🏆 TESTE! TODAS AS ROTAS FUNCIONAM.");
         console.log("====================================================");
     } else {
         console.error("❌ Erro: O pedido ainda existe após o delete!");
