@@ -1,21 +1,53 @@
 /**
- * TESTE (CRUD)
- * Cenário: Criar -> Listar -> Consultar -> Atualizar -> Deletar
+ * TESTE DE CICLO DE VIDA COMPLETO (E2E) COM SEGURANÇA (JWT)
+ * Cenário: Registrar -> Login -> Criar -> Listar -> Consultar -> Atualizar -> Deletar
  */
 
-const BASE_URL = 'http://localhost:3000/order';
-const PEDIDO_ID = "v-TESTE-FINAL-01"; // Um ID exclusivo para esse teste
+const BASE_URL = 'http://localhost:3000';
+const PEDIDO_ID = "v-TESTE-FINAL-SECURE"; 
 
 async function executarTesteCompleto() {
     console.log("====================================================");
-    console.log("🚀 INICIANDO TESTE DE CICLO");
+    console.log("🚀 INICIANDO TESTE E2E (COM AUTENTICAÇÃO)");
     console.log("====================================================");
 
-    // PASSO 0: LIMPEZA (Garante que não vai dar erro de duplicidade)
-    await fetch(`${BASE_URL}/${PEDIDO_ID}`, { method: 'DELETE' });
+    // --- PASSO 0: AUTENTICAÇÃO ---
+    console.log(`\n[0/6] PREPARANDO ACESSO (Login)...`);
+    const userPayload = { username: "tester_bot", password: "123" };
+    
+    // Tenta registrar (ignora erro se já existir)
+    await fetch(`${BASE_URL}/auth/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userPayload)
+    });
+
+    // Faz Login
+    const loginRes = await fetch(`${BASE_URL}/auth/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(userPayload)
+    });
+    const loginJson = await loginRes.json();
+    const TOKEN = loginJson.token;
+
+    if (!TOKEN) {
+        console.error("❌ Erro fatal: Não foi possível obter o token de acesso.");
+        return;
+    }
+    console.log("✅ Token JWT obtido com sucesso.");
+
+    // Header padrão com o Token
+    const AUTH_HEADERS = { 
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${TOKEN}` 
+    };
+
+    // --- LIMPEZA INICIAL ---
+    await fetch(`${BASE_URL}/order/${PEDIDO_ID}`, { method: 'DELETE', headers: AUTH_HEADERS });
 
     // --- 1. CRIAR (POST) ---
-    console.log(`\n[1/5] CRIANDO PEDIDO (${PEDIDO_ID})...`);
+    console.log(`\n[1/6] CRIANDO PEDIDO (${PEDIDO_ID})...`);
     const payloadCreate = {
         "numeroPedido": PEDIDO_ID,
         "valorTotal": 500.00,
@@ -23,72 +55,70 @@ async function executarTesteCompleto() {
         "items": [{ "idItem": "100", "quantidadeItem": 2, "valorItem": 250.00 }]
     };
 
-    let res = await fetch(BASE_URL, {
+    let res = await fetch(`${BASE_URL}/order`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: AUTH_HEADERS, // Enviando o Token!
         body: JSON.stringify(payloadCreate)
     });
-    let json = await res.json();
-
+    
     if (res.status === 201) console.log("✅ Sucesso! Pedido criado.");
-    else return console.error("❌ Falha ao criar:", json);
-
+    else {
+        const err = await res.json();
+        return console.error("❌ Falha ao criar:", err);
+    }
 
     // --- 2. LISTAR TODOS (GET) ---
-    console.log(`\n[2/5] LISTANDO TODOS OS PEDIDOS...`);
-    res = await fetch(`${BASE_URL}/list`);
-    json = await res.json();
+    console.log(`\n[2/6] LISTANDO TODOS OS PEDIDOS...`);
+    res = await fetch(`${BASE_URL}/order/list`, { headers: AUTH_HEADERS });
+    let json = await res.json();
     
-    // Verifica se nosso pedido está na lista
     const encontrado = json.find(p => p.orderId === PEDIDO_ID);
-    if (res.status === 200 && encontrado) console.log(`✅ Sucesso! O pedido ${PEDIDO_ID} foi encontrado na lista.`);
-    else return console.error("❌ Falha ao listar ou pedido não encontrado.");
-
+    if (res.status === 200 && encontrado) console.log(`✅ Sucesso! O pedido foi encontrado na lista.`);
+    else return console.error("❌ Falha ao listar.");
 
     // --- 3. BUSCAR POR ID (GET) ---
-    console.log(`\n[3/5] BUSCANDO DETALHES DO PEDIDO...`);
-    res = await fetch(`${BASE_URL}/${PEDIDO_ID}`);
+    console.log(`\n[3/6] BUSCANDO DETALHES DO PEDIDO...`);
+    res = await fetch(`${BASE_URL}/order/${PEDIDO_ID}`, { headers: AUTH_HEADERS });
     json = await res.json();
 
-    if (res.status === 200 && json.orderId === PEDIDO_ID) console.log("✅ Sucesso! Detalhes recuperados corretamente.");
+    if (res.status === 200 && json.orderId === PEDIDO_ID) console.log("✅ Sucesso! Detalhes recuperados.");
     else return console.error("❌ Falha ao buscar por ID.");
 
-
     // --- 4. ATUALIZAR (PUT) ---
-    console.log(`\n[4/5] ATUALIZANDO VALOR (De 500 para 900)...`);
+    console.log(`\n[4/6] ATUALIZANDO VALOR...`);
     const payloadUpdate = {
         "valorTotal": 900.00,
-        "items": [{ "idItem": "100", "quantidadeItem": 2, "valorItem": 450.00 }] // Atualizando preço do item também
+        "items": [{ "idItem": "100", "quantidadeItem": 2, "valorItem": 450.00 }]
     };
 
-    res = await fetch(`${BASE_URL}/${PEDIDO_ID}`, {
+    res = await fetch(`${BASE_URL}/order/${PEDIDO_ID}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+        headers: AUTH_HEADERS,
         body: JSON.stringify(payloadUpdate)
     });
     json = await res.json();
 
-    if (res.status === 200 && json.value === 900) console.log("✅ Sucesso! Valor atualizado no banco.");
+    if (res.status === 200 && json.value === 900) console.log("✅ Sucesso! Valor atualizado.");
     else return console.error("❌ Falha ao atualizar.");
 
-
     // --- 5. DELETAR (DELETE) ---
-    console.log(`\n[5/5] DELETANDO PEDIDO...`);
-    res = await fetch(`${BASE_URL}/${PEDIDO_ID}`, { method: 'DELETE' });
+    console.log(`\n[5/6] DELETANDO PEDIDO...`);
+    res = await fetch(`${BASE_URL}/order/${PEDIDO_ID}`, { 
+        method: 'DELETE',
+        headers: AUTH_HEADERS 
+    });
     
     if (res.status === 200) console.log("✅ Sucesso! Pedido removido.");
     else return console.error("❌ Falha ao deletar.");
 
-
-    // CONFIRMAÇÃO FINAL
-    // Tenta buscar de novo para garantir que sumiu (deve dar 404)
-    res = await fetch(`${BASE_URL}/${PEDIDO_ID}`);
+    // --- 6. CONFIRMAÇÃO FINAL ---
+    res = await fetch(`${BASE_URL}/order/${PEDIDO_ID}`, { headers: AUTH_HEADERS });
     if (res.status === 404) {
         console.log("\n====================================================");
-        console.log("🏆 TESTE! TODAS AS ROTAS FUNCIONAM.");
+        console.log("🏆 TESTE SEGURANÇA!");
         console.log("====================================================");
     } else {
-        console.error("❌ Erro: O pedido ainda existe após o delete!");
+        console.error("❌ Erro: O pedido ainda existe!");
     }
 }
 

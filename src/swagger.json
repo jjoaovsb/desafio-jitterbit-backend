@@ -2,7 +2,7 @@
   "openapi": "3.0.0",
   "info": {
     "title": "API Desafio Jitterbit",
-    "description": "API de Integração de Pedidos (E-commerce -> ERP)",
+    "description": "API de Integração de Pedidos (E-commerce -> ERP) com Autenticação JWT.",
     "version": "1.0.0",
     "contact": {
       "name": "Seu Nome",
@@ -15,11 +15,121 @@
       "description": "Servidor Local"
     }
   ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "UsuarioInput": {
+        "type": "object",
+        "properties": {
+          "username": {
+            "type": "string",
+            "example": "admin"
+          },
+          "password": {
+            "type": "string",
+            "example": "123"
+          }
+        }
+      },
+      "PedidoEntrada": {
+        "type": "object",
+        "properties": {
+          "numeroPedido": {
+            "type": "string",
+            "example": "v10089015vdb-01"
+          },
+          "valorTotal": {
+            "type": "number",
+            "example": 10000
+          },
+          "dataCriacao": {
+            "type": "string",
+            "format": "date-time",
+            "example": "2023-07-19T12:24:11.529Z"
+          },
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "idItem": {
+                  "type": "string",
+                  "example": "2434"
+                },
+                "quantidadeItem": {
+                  "type": "integer",
+                  "example": 1
+                },
+                "valorItem": {
+                  "type": "number",
+                  "example": 1000
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
   "paths": {
+    "/auth/register": {
+      "post": {
+        "summary": "Criar nova conta de usuário",
+        "tags": ["Autenticação"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Usuário criado com sucesso"
+          }
+        }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "summary": "Fazer Login (Gerar Token)",
+        "tags": ["Autenticação"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UsuarioInput"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Login realizado com sucesso (Copie o Token!)"
+          }
+        }
+      }
+    },
     "/order": {
       "post": {
         "summary": "Criar um novo pedido (Integração)",
-        "description": "Recebe o payload em Português e salva no banco em Inglês.",
+        "tags": ["Pedidos"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "description": "Recebe o payload em Português e salva no banco em Inglês. Requer Token.",
         "requestBody": {
           "required": true,
           "content": {
@@ -37,6 +147,9 @@
           "400": {
             "description": "Dados inválidos"
           },
+          "401": {
+            "description": "Não autorizado (Falta Token)"
+          },
           "409": {
             "description": "Pedido duplicado"
           }
@@ -46,9 +159,18 @@
     "/order/list": {
       "get": {
         "summary": "Listar todos os pedidos",
+        "tags": ["Pedidos"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "responses": {
           "200": {
             "description": "Lista recuperada com sucesso"
+          },
+          "401": {
+            "description": "Não autorizado"
           }
         }
       }
@@ -56,74 +178,85 @@
     "/order/{id}": {
       "get": {
         "summary": "Buscar pedido por ID",
+        "tags": ["Pedidos"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": { "description": "Pedido encontrado" },
-          "404": { "description": "Pedido não encontrado" }
+          "200": {
+            "description": "Pedido encontrado"
+          },
+          "404": {
+            "description": "Pedido não encontrado"
+          }
         }
       },
       "put": {
         "summary": "Atualizar um pedido",
+        "tags": ["Pedidos"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "requestBody": {
           "content": {
             "application/json": {
-              "schema": { "$ref": "#/components/schemas/PedidoEntrada" }
+              "schema": {
+                "$ref": "#/components/schemas/PedidoEntrada"
+              }
             }
           }
         },
         "responses": {
-          "200": { "description": "Atualizado com sucesso" }
+          "200": {
+            "description": "Atualizado com sucesso"
+          }
         }
       },
       "delete": {
         "summary": "Deletar um pedido",
+        "tags": ["Pedidos"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
         "parameters": [
           {
             "name": "id",
             "in": "path",
             "required": true,
-            "schema": { "type": "string" }
+            "schema": {
+              "type": "string"
+            }
           }
         ],
         "responses": {
-          "200": { "description": "Removido com sucesso" }
-        }
-      }
-    }
-  },
-  "components": {
-    "schemas": {
-      "PedidoEntrada": {
-        "type": "object",
-        "properties": {
-          "numeroPedido": { "type": "string", "example": "v10089015vdb-01" },
-          "valorTotal": { "type": "number", "example": 10000 },
-          "dataCriacao": { "type": "string", "format": "date-time", "example": "2023-07-19T12:24:11.529Z" },
-          "items": {
-            "type": "array",
-            "items": {
-              "type": "object",
-              "properties": {
-                "idItem": { "type": "string", "example": "2434" },
-                "quantidadeItem": { "type": "integer", "example": 1 },
-                "valorItem": { "type": "number", "example": 1000 }
-              }
-            }
+          "200": {
+            "description": "Removido com sucesso"
           }
         }
       }
