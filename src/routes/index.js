@@ -4,19 +4,29 @@ const OrderController = require('../controllers/OrderController');
 const AuthController = require('../controllers/AuthController');
 const authMiddleware = require('../middlewares/auth');
 
-router.get('/', (req, res) => res.json({ status: 'API Jitterbit Online' }));
+/**
+ * ARQUIVO DE ROTAS
+ */
 
-// --- ROTAS PÚBLICAS (Qualquer um pode acessar) ---
-router.post('/auth/register', AuthController.register); // Criar conta
-router.post('/auth/login', AuthController.login);       // Fazer login
+// --- ROTA RAIZ (Redirecionamento Automático) ---
+// Se o recrutador abrir localhost:3000, ele cai direto na documentação!
+router.get('/', (req, res) => {
+    res.redirect('/api-docs');
+});
+
+// --- ROTAS PÚBLICAS ---
+router.post('/auth/register', AuthController.register);
+router.post('/auth/login', AuthController.login);
 
 // --- BARREIRA DE SEGURANÇA ---
-// Tudo o que estiver abaixo desta linha exige Token JWT
 router.use(authMiddleware); 
 
-// --- ROTAS PROTEGIDAS (Só com Token) ---
-router.post('/order', OrderController.create);
+// --- ROTAS PROTEGIDAS ---
+// Rotas específicas PRIMEIRO
 router.get('/order/list', OrderController.list);
+
+// Rotas genéricas/dinâmicas DEPOIS
+router.post('/order', OrderController.create);
 router.get('/order/:id', OrderController.getById);
 router.put('/order/:id', OrderController.update);
 router.delete('/order/:id', OrderController.delete);

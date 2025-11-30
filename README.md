@@ -1,6 +1,6 @@
 # 🚀 Desafio Técnico - Jitterbit (Backend)
 
-API REST desenvolvida para integração de pedidos de E-commerce, com transformação de dados (ETL), persistência em banco relacional e segurança via Token.
+API REST desenvolvida para integração de pedidos de E-commerce, contemplando transformação de dados (ETL), persistência em banco relacional, segurança via JWT e documentação automatizada.
 
 ## 🛠 Tecnologias Utilizadas
 
@@ -12,11 +12,11 @@ API REST desenvolvida para integração de pedidos de E-commerce, com transforma
 
 ## ⚙️ Funcionalidades
 
-* **Criação de Pedidos (POST):** Recebe JSON em PT-BR, transforma para EN e salva no banco (Tabelas `Orders` e `Items`).
-* **Autenticação JWT:** Rotas protegidas. Apenas usuários autenticados (com Token Bearer) podem criar, editar ou excluir pedidos.
-* **Validação:** Impede duplicidade de pedidos e garante integridade dos dados (Transações/Rollback).
-* **CRUD Completo:** Listagem, Busca por ID, Atualização e Exclusão.
-* **Documentação:** Interface interativa com Swagger.
+* **Transformação ETL:** Recebe payload em Português (`numeroPedido`), transforma e salva em Inglês (`orderId`) nas tabelas `Orders` e `Items`.
+* **Autenticação JWT:** Rotas protegidas. Necessário token Bearer para operações de escrita e leitura.
+* **Integridade de Dados:** Uso de Transações (`transactions`) para garantir atomicidade entre Pedido e Itens.
+* **CRUD Completo:** Endpoints para Criar, Listar, Buscar por ID, Atualizar e Deletar.
+* **Validação:** Tratamento de erros para duplicidade e dados inválidos.
 
 ## 🚀 Como Rodar o Projeto
 
@@ -32,21 +32,25 @@ API REST desenvolvida para integração de pedidos de E-commerce, com transforma
     ```
 
 3.  **Configure o Banco de Dados:**
-    * Crie um banco de dados PostgreSQL (ex: `jitterbit_test`).
-    * Renomeie o arquivo `.env.example` para `.env` e configure suas credenciais.
-    * **Importante:** Defina uma chave secreta para o JWT na variável `JWT_SECRET` dentro do `.env`.
+    * Tenha um banco PostgreSQL rodando (local ou Docker).
+    * Renomeie o arquivo `.env.example` para `.env` e configure suas credenciais (`DB_USER`, `DB_PASS`, etc).
+    * **Importante:** Defina uma chave secreta na variável `JWT_SECRET` dentro do `.env`.
 
 4.  **Execute o servidor:**
     ```bash
     npm start
     ```
-    *O servidor rodará em `http://localhost:3000`*
+    *O servidor iniciará em `http://localhost:3000` e sincronizará as tabelas automaticamente.*
 
-## 🔐 Como Testar (Autenticação)
+## 🧪 Testes Automatizados (E2E)
 
-Como a API possui segurança implementada, é necessário gerar um token para utilizar as rotas de Pedidos.
+O projeto inclui um script de teste **End-to-End** que valida o ciclo de vida completo da aplicação:
+1. Registra um usuário e realiza Login (Obtém Token JWT).
+2. Cria um Pedido (POST).
+3. Lista os Pedidos (GET).
+4. Atualiza o Pedido (PUT).
+5. Deleta o Pedido (DELETE).
 
-**Opção 1: Via Script Automatizado (Recomendado)**
-Execute o script de teste que realiza o fluxo completo (Registrar -> Login -> Criar Pedido com Token):
+**Para executar o teste:**
 ```bash
-node teste-autenticado.js
+node teste-completo.js
